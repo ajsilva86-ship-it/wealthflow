@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Dashboard Financeiro CFP - Importação OFX/CSV</title>
+
+    <!-- PWA: manifesto, tema e ícones -->
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#111827">
+    <link rel="apple-touch-icon" href="icons/icon-180.png">
+    <!-- iOS: comportamento de app em tela cheia -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="WealthFlow">
+
+    <!-- Tailwind CSS para Design Moderno -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js para os Gráficos Interativos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans antialiased">
+
+    <div class="min-h-screen flex flex-col md:flex-row">
+
+        <!-- Barra Lateral -->
+        <aside class="w-full md:w-64 bg-gray-800 p-6 border-b md:border-r border-gray-700 flex flex-col justify-between">
+            <div>
+                <div class="flex items-center space-x-2 mb-8">
+                    <span class="text-2xl">📊</span>
+                    <h1 class="text-xl font-bold text-emerald-400">WealthFlow CFP</h1>
+                </div>
+                <div class="bg-red-500/10 border border-red-500/30 rounded-lg p-3 mb-6 text-center">
+                    <span class="text-xs font-bold uppercase tracking-wider text-red-400">Perfil: Arrojado 🔥</span>
+                </div>
+                <nav class="space-y-2">
+                    <a href="#" class="block p-3 bg-emerald-600 rounded-lg font-medium transition">Visão Geral</a>
+                    <a href="#" class="block p-3 hover:bg-gray-700 rounded-lg transition text-gray-400 hover:text-white">Contas &amp; Cartões</a>
+                    <a href="#" class="block p-3 hover:bg-gray-700 rounded-lg transition text-gray-400 hover:text-white">Investimentos</a>
+                    <a href="#" class="block p-3 hover:bg-gray-700 rounded-lg transition text-gray-400 hover:text-white">Milhas &amp; Smiles</a>
+                </nav>
+            </div>
+            <div class="pt-6 border-t border-gray-700 text-xs text-gray-500 text-center">
+                Dados importados localmente (OFX/CSV)
+            </div>
+        </aside>
+
+        <!-- Conteúdo Principal -->
+        <main class="flex-1 p-6 md:p-8 space-y-6 overflow-y-auto">
+
+            <header class="flex flex-col md:flex-row md:items-center md:justify-between border-b border-gray-800 pb-4">
+                <div>
+                    <h2 class="text-2xl font-bold">Consolidação Patrimonial</h2>
+                    <p class="text-sm text-gray-400">Importe os extratos dos seus bancos para atualizar o painel.</p>
+                </div>
+                <div class="mt-4 md:mt-0 bg-gray-800 px-4 py-2 rounded-lg border border-gray-700 text-sm flex items-center space-x-2">
+                    <span class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+                    <span>Processamento 100% local</span>
+                </div>
+            </header>
+
+            <!-- PAINEL DE IMPORTAÇÃO -->
+            <section class="bg-gray-800 p-6 rounded-xl border border-emerald-500/30">
+                <div class="flex items-center space-x-2 mb-4">
+                    <span class="text-lg">📥</span>
+                    <h3 class="text-base font-bold text-emerald-400">Importar Extrato</h3>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1 uppercase font-semibold">Banco</label>
+                        <select id="impBanco" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm focus:border-emerald-500 outline-none">
+                            <option>Itaú</option>
+                            <option>Santander</option>
+                            <option>Banco Inter</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1 uppercase font-semibold">Arquivo (.ofx ou .csv)</label>
+                        <input id="impArquivo" type="file" accept=".ofx,.csv,.txt"
+                            class="w-full text-sm text-gray-300 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-emerald-600 file:text-white file:text-sm file:cursor-pointer bg-gray-900 border border-gray-700 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1 uppercase font-semibold">Saldo atual (opcional)</label>
+                        <input id="impSaldo" type="number" step="0.01" placeholder="Ex: 12500.00"
+                            class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm focus:border-emerald-500 outline-none">
+                    </div>
+                    <div>
+                        <button id="btnImportar" class="w-full bg-emerald-600 hover:bg-emerald-500 transition rounded-lg p-2.5 text-sm font-medium">
+                            Importar
+                        </button>
+                    </div>
+                </div>
+                <p id="impStatus" class="text-xs text-gray-400 mt-3">
+                    Dica: no app do banco, procure "exportar extrato" no formato OFX. O saldo atual é opcional — se você não preencher, ele é estimado pelo arquivo.
+                </p>
+            </section>
+
+            <!-- Cards de Resumo -->
+            <section class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
+                    <p class="text-xs text-gray-400 uppercase font-semibold">Saldos em Conta</p>
+                    <p id="cardSaldos" class="text-2xl font-bold mt-1 text-emerald-400">R$ 0,00</p>
+                </div>
+                <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
+                    <p class="text-xs text-gray-400 uppercase font-semibold">Gastos no Mês</p>
+                    <p id="cardGastos" class="text-2xl font-bold mt-1 text-red-400">R$ 0,00</p>
+                </div>
+                <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
+                    <p class="text-xs text-gray-400 uppercase font-semibold">Lançamentos</p>
+                    <p id="cardLancamentos" class="text-2xl font-bold mt-1 text-blue-400">0</p>
+                </div>
+                <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
+                    <p class="text-xs text-gray-400 uppercase font-semibold">Saldo Smiles <span class="text-gray-600">(manual)</span></p>
+                    <p class="text-2xl font-bold mt-1 text-orange-400">142.300 <span class="text-xs font-normal">milhas</span></p>
+                </div>
+            </section>
+
+            <!-- Gráficos -->
+            <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 flex flex-col h-[320px]">
+                    <h3 class="text-sm font-semibold mb-4 text-gray-300">Distribuição de Saldos por Banco</h3>
+                    <div class="flex-1 relative min-h-0">
+                        <canvas id="bancosChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 flex flex-col h-[320px]">
+                    <h3 class="text-sm font-semibold mb-4 text-gray-300">Carteira Recomendada <span class="text-gray-600 font-normal">(valores manuais)</span></h3>
+                    <div class="flex-1 relative min-h-0">
+                        <canvas id="investChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tabela de Lançamentos -->
+            <section class="bg-gray-800 p-6 rounded-xl border border-gray-700">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-semibold text-gray-300">Últimos Lançamentos Importados</h3>
+                    <button id="btnLimpar" class="text-xs text-gray-500 hover:text-red-400 transition">Limpar tudo</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="text-left text-xs text-gray-500 uppercase border-b border-gray-700">
+                                <th class="pb-2 pr-4">Data</th>
+                                <th class="pb-2 pr-4">Banco</th>
+                                <th class="pb-2 pr-4">Descrição</th>
+                                <th class="pb-2 text-right">Valor</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaLancamentos">
+                            <tr><td colspan="4" class="py-6 text-center text-gray-600">Nenhum lançamento ainda. Importe um extrato acima.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script>
+    // ====================== ESTADO ======================
+    const BANCOS = [
+        { nome: 'Itaú',        cor: '#EC7000' },
+        { nome: 'Santander',   cor: '#CC0000' },
+        { nome: 'Banco Inter', cor: '#FF7A00' },
+    ];
+
+    let state = { bancos: {}, txns: [] };
+    BANCOS.forEach(b => state.bancos[b.nome] = { saldo: 0, gastos: 0, count: 0 });
+
+    // Persistência (silenciosa: se o navegador bloquear, simplesmente não salva)
+    const Store = {
+        save() { try { localStorage.setItem('wf_state', JSON.stringify(state)); } catch (e) {} },
+        load() { try { const s = localStorage.getItem('wf_state'); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
+    };
+
+    // ====================== UTILIDADES ======================
+    const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+
+    // Converte texto de valor ("-1.234,56", "1234.56", "1.234,56") em número
+    function normalizaValor(s) {
+        if (s == null) return 0;
+        s = String(s).trim();
+        if (s === '') return 0;
+        const negativo = /^-/.test(s) || /-$/.test(s) || /\(.*\)/.test(s);
+        s = s.replace(/[^\d.,]/g, '');
+        if (s.includes(',') && s.includes('.')) {
+            // o separador decimal é o que aparece por último
+            if (s.lastIndexOf(',') > s.lastIndexOf('.')) s = s.replace(/\./g, '').replace(',', '.');
+            else s = s.replace(/,/g, '');
+        } else if (s.includes(',')) {
+            s = s.replace(',', '.');
+        }
+        let n = parseFloat(s);
+        if (isNaN(n)) n = 0;
+        return negativo ? -Math.abs(n) : n;
+    }
+
+    // Data OFX (AAAAMMDD...) -> {y, m, d}
+    function dataOFX(s) {
+        if (!s) return null;
+        const d = String(s).replace(/[^\d]/g, '').slice(0, 8);
+        if (d.length < 8) return null;
+        return { y: +d.slice(0, 4), m: +d.slice(4, 6), d: +d.slice(6, 8) };
+    }
+
+    function fmtData(dt) {
+        if (!dt) return '—';
+        const p = n => String(n).padStart(2, '0');
+        return `${p(dt.d)}/${p(dt.m)}/${dt.y}`;
+    }
+
+    // Soma os gastos (valores negativos) do mês mais recente presente nos lançamentos
+    function calculaGastosDoMes(txns) {
+        if (!txns.length) return 0;
+        let chaveMax = 0;
+        txns.forEach(t => { if (t.date) chaveMax = Math.max(chaveMax, t.date.y * 100 + t.date.m); });
+        let soma = 0;
+        txns.forEach(t => {
+            if (t.date && (t.date.y * 100 + t.date.m) === chaveMax && t.amount < 0) soma += t.amount;
+        });
+        return Math.abs(soma);
+    }
+
+    // ====================== PARSERS ======================
+    function pegaTag(bloco, tag) {
+        const m = bloco.match(new RegExp('<' + tag + '>\\s*([^<\\r\\n]*)', 'i'));
+        return m ? m[1].trim() : null;
+    }
+
+    function parseOFX(texto) {
+        const txns = [];
+        const blocos = texto.split(/<STMTTRN>/i).slice(1);
+        for (const parte of blocos) {
+            const bloco = parte.split(/<\/STMTTRN>|<\/BANKTRANLIST>|<STMTTRN>/i)[0];
+            const amount = normalizaValor(pegaTag(bloco, 'TRNAMT'));
+            const date = dataOFX(pegaTag(bloco, 'DTPOSTED'));
+            const memo = pegaTag(bloco, 'MEMO') || pegaTag(bloco, 'NAME') || 'Lançamento';
+            if (amount !== 0 || date) txns.push({ amount, date, memo });
+        }
+        // saldo: prioriza o bloco LEDGERBAL
+        let saldo = null;
+        const led = texto.match(/<LEDGERBAL>([\s\S]*?)(<\/LEDGERBAL>|<\/STMTRS>)/i);
+        const escopo = led ? led[1] : texto;
+        const bal = pegaTag(escopo, 'BALAMT');
+        if (bal != null) saldo = normalizaValor(bal);
+        return { txns, saldo };
+    }
+
+    function divideLinhaCSV(linha, delim) {
+        const out = []; let cur = ''; let aspas = false;
+        for (let i = 0; i < linha.length; i++) {
+            const c = linha[i];
+            if (c === '"') { if (aspas && linha[i + 1] === '"') { cur += '"'; i++; } else aspas = !aspas; }
+            else if (c === delim && !aspas) { out.push(cur); cur = ''; }
+            else cur += c;
+        }
+        out.push(cur);
+        return out.map(s => s.trim());
+    }
+
+    function parseDataTexto(s) {
+        if (!s) return null;
+        const m = s.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);
+        if (m) { let y = +m[3]; if (y < 100) y += 2000; return { y, m: +m[2], d: +m[1] }; }
+        const iso = s.match(/(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})/);
+        if (iso) return { y: +iso[1], m: +iso[2], d: +iso[3] };
+        return null;
+    }
+
+    function parseCSV(texto) {
+        const linhas = texto.split(/\r?\n/).filter(l => l.trim() !== '');
+        if (!linhas.length) return { txns: [], saldo: null };
+        const delim = (texto.split(';').length > texto.split(',').length) ? ';' : ',';
+        const linhasCols = linhas.map(l => divideLinhaCSV(l, delim));
+
+        // tenta achar cabeçalho
+        const cab = linhasCols[0].map(h => h.toLowerCase());
+        let iData = cab.findIndex(h => /data|date/.test(h));
+        let iValor = cab.findIndex(h => /valor|value|amount|montante|crédito|débito/.test(h));
+        let iDesc = cab.findIndex(h => /descri|hist|memo|lan|detalhe|estabelec/.test(h));
+        let iSaldo = cab.findIndex(h => /saldo|balance/.test(h));
+        let inicio = 1;
+
+        // sem cabeçalho reconhecível: assume data / descrição / valor pelas posições
+        if (iData === -1 && iValor === -1) {
+            iData = 0; iDesc = 1; iValor = linhasCols[0].length - 1; inicio = 0;
+        }
+
+        const txns = []; let ultimoSaldo = null;
+        for (let i = inicio; i < linhasCols.length; i++) {
+            const cols = linhasCols[i];
+            const date = parseDataTexto(cols[iData] || '');
+            const amount = normalizaValor(cols[iValor] || '');
+            const memo = (iDesc >= 0 ? cols[iDesc] : '') || 'Lançamento';
+            if (iSaldo >= 0 && cols[iSaldo]) ultimoSaldo = normalizaValor(cols[iSaldo]);
+            if (amount !== 0 || date) txns.push({ amount, date, memo });
+        }
+        return { txns, saldo: ultimoSaldo };
+    }
+
+    // ====================== GRÁFICOS ======================
+    let bancosChart, investChart;
+
+    function initCharts() {
+        bancosChart = new Chart(document.getElementById('bancosChart'), {
+            type: 'bar',
+            data: {
+                labels: BANCOS.map(b => b.nome),
+                datasets: [{
+                    label: 'Saldo (R$)',
+                    data: BANCOS.map(b => state.bancos[b.nome].saldo),
+                    backgroundColor: BANCOS.map(b => b.cor),
+                    borderWidth: 0, borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { grid: { color: '#374151' }, ticks: { color: '#9CA3AF' } },
+                    x: { grid: { display: false }, ticks: { color: '#9CA3AF' } }
+                }
+            }
+        });
+
+        investChart = new Chart(document.getElementById('investChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Ações (Ibovespa/Dólar)', 'Fundos Imobiliários', 'Criptoativos', 'Renda Fixa/Liquidez'],
+                datasets: [{
+                    data: [40, 20, 15, 25],
+                    backgroundColor: ['#10B981', '#3B82F6', '#8B5CF6', '#6B7280'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'right', labels: { color: '#9CA3AF', font: { size: 11 } } } }
+            }
+        });
+    }
+
+    // ====================== RENDER ======================
+    function refresh() {
+        const totalSaldo = BANCOS.reduce((s, b) => s + state.bancos[b.nome].saldo, 0);
+        const totalGastos = BANCOS.reduce((s, b) => s + state.bancos[b.nome].gastos, 0);
+
+        document.getElementById('cardSaldos').textContent = brl.format(totalSaldo);
+        document.getElementById('cardGastos').textContent = brl.format(totalGastos);
+        document.getElementById('cardLancamentos').textContent = state.txns.length;
+
+        if (bancosChart) {
+            bancosChart.data.datasets[0].data = BANCOS.map(b => state.bancos[b.nome].saldo);
+            bancosChart.update();
+        }
+
+        // tabela: mais recentes primeiro
+        const ordenados = [...state.txns].sort((a, b) => {
+            const ka = a.date ? a.date.y * 10000 + a.date.m * 100 + a.date.d : 0;
+            const kb = b.date ? b.date.y * 10000 + b.date.m * 100 + b.date.d : 0;
+            return kb - ka;
+        }).slice(0, 15);
+
+        const tbody = document.getElementById('tabelaLancamentos');
+        if (!ordenados.length) {
+            tbody.innerHTML = '<tr><td colspan="4" class="py-6 text-center text-gray-600">Nenhum lançamento ainda. Importe um extrato acima.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = ordenados.map(t => {
+            const cor = t.amount < 0 ? 'text-red-400' : 'text-emerald-400';
+            const desc = (t.memo || '').replace(/</g, '&lt;').slice(0, 60);
+            return `<tr class="border-b border-gray-800/60">
+                <td class="py-2.5 pr-4 text-gray-400 whitespace-nowrap">${fmtData(t.date)}</td>
+                <td class="py-2.5 pr-4 text-gray-300 whitespace-nowrap">${t.banco}</td>
+                <td class="py-2.5 pr-4 text-gray-300">${desc}</td>
+                <td class="py-2.5 text-right font-medium ${cor} whitespace-nowrap">${brl.format(t.amount)}</td>
+            </tr>`;
+        }).join('');
+    }
+
+    // ====================== IMPORTAÇÃO ======================
+    function status(msg, erro = false) {
+        const el = document.getElementById('impStatus');
+        el.textContent = msg;
+        el.className = 'text-xs mt-3 ' + (erro ? 'text-red-400' : 'text-emerald-400');
+    }
+
+    function importar() {
+        const banco = document.getElementById('impBanco').value;
+        const inputArq = document.getElementById('impArquivo');
+        const saldoManual = document.getElementById('impSaldo').value;
+
+        if (!inputArq.files.length) { status('Selecione um arquivo .ofx ou .csv primeiro.', true); return; }
+
+        const arquivo = inputArq.files[0];
+        const reader = new FileReader();
+        reader.onload = e => {
+            try {
+                const texto = e.target.result;
+                const ehOFX = /\.ofx$/i.test(arquivo.name) || /<OFX>|<STMTTRN>/i.test(texto);
+                const { txns, saldo } = ehOFX ? parseOFX(texto) : parseCSV(texto);
+
+                if (!txns.length && saldo == null) {
+                    status('Não encontrei lançamentos nesse arquivo. Confira se é um extrato OFX/CSV válido.', true);
+                    return;
+                }
+
+                txns.forEach(t => t.banco = banco);
+
+                // remove dados antigos desse banco e adiciona os novos
+                state.txns = state.txns.filter(t => t.banco !== banco).concat(txns);
+
+                let saldoFinal;
+                if (saldoManual !== '') saldoFinal = parseFloat(saldoManual);
+                else if (saldo != null) saldoFinal = saldo;
+                else saldoFinal = txns.reduce((s, t) => s + t.amount, 0); // estimativa pela soma
+
+                state.bancos[banco] = {
+                    saldo: saldoFinal,
+                    gastos: calculaGastosDoMes(txns),
+                    count: txns.length
+                };
+
+                Store.save();
+                refresh();
+                inputArq.value = '';
+                document.getElementById('impSaldo').value = '';
+                status(`${banco}: ${txns.length} lançamentos importados • saldo ${brl.format(saldoFinal)} • gastos no mês ${brl.format(state.bancos[banco].gastos)}.`);
+            } catch (err) {
+                status('Erro ao ler o arquivo: ' + err.message, true);
+            }
+        };
+        reader.onerror = () => status('Não consegui ler o arquivo.', true);
+        reader.readAsText(arquivo, 'ISO-8859-1'); // extratos brasileiros costumam vir em Latin-1
+    }
+
+    function limpar() {
+        if (!confirm('Apagar todos os dados importados?')) return;
+        state = { bancos: {}, txns: [] };
+        BANCOS.forEach(b => state.bancos[b.nome] = { saldo: 0, gastos: 0, count: 0 });
+        Store.save();
+        refresh();
+        status('Dados apagados. Importe um extrato para começar de novo.');
+    }
+
+    // ====================== INICIALIZAÇÃO ======================
+    document.addEventListener('DOMContentLoaded', () => {
+        const salvo = Store.load();
+        if (salvo && salvo.bancos && salvo.txns) {
+            state = salvo;
+            BANCOS.forEach(b => { if (!state.bancos[b.nome]) state.bancos[b.nome] = { saldo: 0, gastos: 0, count: 0 }; });
+        }
+        initCharts();
+        refresh();
+        document.getElementById('btnImportar').addEventListener('click', importar);
+        document.getElementById('btnLimpar').addEventListener('click', limpar);
+    });
+
+    // ====================== PWA: registra o service worker ======================
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js').catch(err => {
+                console.warn('Service worker não registrado:', err);
+            });
+        });
+    }
+    </script>
+</body>
+</html>
