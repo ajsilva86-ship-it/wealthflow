@@ -3,7 +3,7 @@
 // O "app shell" (HTML, manifesto, ícones) é pré-cacheado na instalação.
 // CDNs (Tailwind, Chart.js) são cacheados na primeira vez que carregam online.
 
-const CACHE = 'wealthflow-v1';
+const CACHE = 'wealthflow-v7';
 
 const APP_SHELL = [
   './',
