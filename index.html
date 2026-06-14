@@ -3,24 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Dashboard Financeiro CFP - Importação OFX/CSV</title>
+    <title>WealthFlow CFP - Dashboard Financeiro</title>
 
-    <!-- PWA: manifesto, tema e ícones -->
+    <!-- PWA -->
     <link rel="manifest" href="manifest.webmanifest">
     <meta name="theme-color" content="#111827">
     <link rel="apple-touch-icon" href="icons/icon-180.png">
-    <!-- iOS: comportamento de app em tela cheia -->
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="WealthFlow">
 
-    <!-- Tailwind CSS para Design Moderno -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js para os Gráficos Interativos -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-gray-900 text-gray-100 font-sans antialiased">
+
+    <!-- TELA DE SENHA -->
+    <div id="lockScreen" class="fixed inset-0 z-50 bg-gray-900 flex items-center justify-center" style="display:none!important">
+        <div class="bg-gray-800 border border-gray-700 rounded-2xl p-8 w-full max-w-sm mx-4 text-center space-y-6">
+            <div>
+                <span class="text-4xl">🔐</span>
+                <h2 class="text-xl font-bold mt-3 text-emerald-400">WealthFlow CFP</h2>
+                <p id="lockMsg" class="text-sm text-gray-400 mt-1">Digite sua senha para acessar</p>
+            </div>
+            <input id="lockInput" type="password" placeholder="••••••••"
+                class="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 text-center text-lg tracking-widest focus:border-emerald-500 outline-none">
+            <button id="lockBtn" class="w-full bg-emerald-600 hover:bg-emerald-500 transition rounded-xl p-3 font-medium">
+                Entrar
+            </button>
+            <p id="lockSetup" class="text-xs text-gray-500"></p>
+        </div>
+    </div>
 
     <div class="min-h-screen flex flex-col md:flex-row">
 
@@ -54,9 +68,19 @@
                     <h2 class="text-2xl font-bold">Consolidação Patrimonial</h2>
                     <p class="text-sm text-gray-400">Importe os extratos dos seus bancos para atualizar o painel.</p>
                 </div>
-                <div class="mt-4 md:mt-0 bg-gray-800 px-4 py-2 rounded-lg border border-gray-700 text-sm flex items-center space-x-2">
-                    <span class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
-                    <span>Processamento 100% local</span>
+                <div class="mt-4 md:mt-0 flex items-center gap-2">
+                    <button id="btnOcultar" title="Ocultar/mostrar valores"
+                        class="bg-gray-800 hover:bg-gray-700 transition px-3 py-2 rounded-lg border border-gray-700 text-sm flex items-center gap-2">
+                        <span id="olhoIcon">👁️</span><span id="olhoTxt">Ocultar</span>
+                    </button>
+                    <button id="btnBloquear" title="Bloquear app"
+                        class="bg-gray-800 hover:bg-gray-700 transition px-3 py-2 rounded-lg border border-gray-700 text-sm flex items-center gap-2">
+                        🔒 Bloquear
+                    </button>
+                    <div class="bg-gray-800 px-4 py-2 rounded-lg border border-gray-700 text-sm flex items-center space-x-2">
+                        <span class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+                        <span>Processamento 100% local</span>
+                    </div>
                 </div>
             </header>
 
@@ -92,18 +116,26 @@
                     </div>
                 </div>
                 <p id="impStatus" class="text-xs text-gray-400 mt-3">
-                    Dica: no app do banco, procure "exportar extrato" no formato OFX. O saldo atual é opcional — se você não preencher, ele é estimado pelo arquivo.
+                    Dica: no app do banco, procure "exportar extrato" no formato OFX. O saldo atual é opcional — se não preencher, é estimado pelo arquivo.
                 </p>
             </section>
 
+            <!-- Filtro de Período -->
+            <section class="flex items-center justify-end gap-2">
+                <label for="filtroMes" class="text-xs text-gray-400 uppercase font-semibold">Período</label>
+                <select id="filtroMes" class="bg-gray-800 border border-gray-700 rounded-lg p-2 text-sm focus:border-emerald-500 outline-none min-w-[160px]">
+                    <option value="todos">Todos os meses</option>
+                </select>
+            </section>
+
             <!-- Cards de Resumo -->
-            <section class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
                     <p class="text-xs text-gray-400 uppercase font-semibold">Saldos em Conta</p>
                     <p id="cardSaldos" class="text-2xl font-bold mt-1 text-emerald-400">R$ 0,00</p>
                 </div>
                 <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
-                    <p class="text-xs text-gray-400 uppercase font-semibold">Gastos no Mês</p>
+                    <p id="lblGastos" class="text-xs text-gray-400 uppercase font-semibold">Gastos no Mês</p>
                     <p id="cardGastos" class="text-2xl font-bold mt-1 text-red-400">R$ 0,00</p>
                 </div>
                 <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
@@ -112,31 +144,94 @@
                 </div>
                 <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
                     <p class="text-xs text-gray-400 uppercase font-semibold">Saldo Smiles <span class="text-gray-600">(manual)</span></p>
-                    <p class="text-2xl font-bold mt-1 text-orange-400">142.300 <span class="text-xs font-normal">milhas</span></p>
+                    <p id="cardSmiles" class="text-2xl font-bold mt-1 text-orange-400">0 <span class="text-xs font-normal">milhas</span></p>
                 </div>
             </section>
 
-            <!-- Gráficos -->
+            <!-- PAINEL DE CONSELHOS -->
+            <section class="bg-gray-800 p-6 rounded-xl border border-emerald-500/30 space-y-4">
+                <div class="flex items-center space-x-2">
+                    <span class="text-lg">🎯</span>
+                    <h3 class="text-base font-bold text-emerald-400">Onde dá pra economizar</h3>
+                </div>
+                <div id="conselhos" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div class="p-3 bg-gray-900/50 rounded-lg border border-gray-700 text-gray-500">
+                        Importe um extrato para receber a análise dos seus gastos.
+                    </div>
+                </div>
+                <p class="text-xs text-gray-600">Análise automática dos seus lançamentos — não substitui orientação financeira profissional.</p>
+            </section>
+
+            <!-- Gráficos: linha 1 -->
             <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 flex flex-col h-[320px]">
                     <h3 class="text-sm font-semibold mb-4 text-gray-300">Distribuição de Saldos por Banco</h3>
-                    <div class="flex-1 relative min-h-0">
-                        <canvas id="bancosChart"></canvas>
-                    </div>
+                    <div class="flex-1 relative min-h-0"><canvas id="bancosChart"></canvas></div>
                 </div>
                 <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 flex flex-col h-[320px]">
-                    <h3 class="text-sm font-semibold mb-4 text-gray-300">Carteira Recomendada <span class="text-gray-600 font-normal">(valores manuais)</span></h3>
-                    <div class="flex-1 relative min-h-0">
-                        <canvas id="investChart"></canvas>
-                    </div>
+                    <h3 class="text-sm font-semibold mb-4 text-gray-300">Gastos por Categoria <span class="text-gray-600 font-normal">(mês atual)</span></h3>
+                    <div class="flex-1 relative min-h-0"><canvas id="categoriaChart"></canvas></div>
                 </div>
             </section>
 
-            <!-- Tabela de Lançamentos -->
+            <!-- Gráficos: linha 2 -->
+            <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 flex flex-col h-[320px]">
+                    <h3 class="text-sm font-semibold mb-4 text-gray-300">Evolução de Gastos por Mês</h3>
+                    <div class="flex-1 relative min-h-0"><canvas id="mesChart"></canvas></div>
+                </div>
+                <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 flex flex-col h-[320px]">
+                    <h3 class="text-sm font-semibold mb-4 text-gray-300">Carteira de Investimentos <span class="text-gray-600 font-normal">(manual)</span></h3>
+                    <div class="flex-1 relative min-h-0"><canvas id="investChart"></canvas></div>
+                </div>
+            </section>
+
+            <!-- AJUSTES MANUAIS -->
+            <details class="bg-gray-800 rounded-xl border border-gray-700">
+                <summary class="cursor-pointer p-4 text-sm font-semibold text-gray-300 select-none">⚙️ Ajustes manuais (investimentos e milhas)</summary>
+                <div class="p-6 pt-2 border-t border-gray-700 space-y-4">
+                    <p class="text-xs text-gray-400">Esses valores não vêm do extrato. Ajuste e clique em salvar.</p>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Ações (%)</label>
+                            <input id="mAcoes" type="number" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-sm outline-none focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">FIIs (%)</label>
+                            <input id="mFii" type="number" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-sm outline-none focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Cripto (%)</label>
+                            <input id="mCripto" type="number" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-sm outline-none focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Renda Fixa (%)</label>
+                            <input id="mRf" type="number" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-sm outline-none focus:border-emerald-500">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 items-end">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Saldo Smiles (milhas)</label>
+                            <input id="mSmiles" type="number" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-sm outline-none focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <button id="btnSalvarManual" class="w-full bg-emerald-600 hover:bg-emerald-500 transition rounded-lg p-2 text-sm font-medium">Salvar ajustes</button>
+                        </div>
+                    </div>
+                </div>
+            </details>
+
+            <!-- Tabela + Backup -->
             <section class="bg-gray-800 p-6 rounded-xl border border-gray-700">
-                <div class="flex items-center justify-between mb-4">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
                     <h3 class="text-sm font-semibold text-gray-300">Últimos Lançamentos Importados</h3>
-                    <button id="btnLimpar" class="text-xs text-gray-500 hover:text-red-400 transition">Limpar tudo</button>
+                    <div class="flex items-center gap-3 text-xs">
+                        <button id="btnExportar" class="text-emerald-400 hover:text-emerald-300 transition">⬇ Exportar dados</button>
+                        <label class="text-blue-400 hover:text-blue-300 transition cursor-pointer">⬆ Importar backup
+                            <input id="inputBackup" type="file" accept=".json" class="hidden">
+                        </label>
+                        <button id="btnLimpar" class="text-gray-500 hover:text-red-400 transition">Limpar tudo</button>
+                    </div>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
@@ -145,11 +240,12 @@
                                 <th class="pb-2 pr-4">Data</th>
                                 <th class="pb-2 pr-4">Banco</th>
                                 <th class="pb-2 pr-4">Descrição</th>
+                                <th class="pb-2 pr-4">Categoria</th>
                                 <th class="pb-2 text-right">Valor</th>
                             </tr>
                         </thead>
                         <tbody id="tabelaLancamentos">
-                            <tr><td colspan="4" class="py-6 text-center text-gray-600">Nenhum lançamento ainda. Importe um extrato acima.</td></tr>
+                            <tr><td colspan="5" class="py-6 text-center text-gray-600">Nenhum lançamento ainda. Importe um extrato acima.</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -166,10 +262,13 @@
         { nome: 'Banco Inter', cor: '#FF7A00' },
     ];
 
-    let state = { bancos: {}, txns: [] };
-    BANCOS.forEach(b => state.bancos[b.nome] = { saldo: 0, gastos: 0, count: 0 });
+    function estadoInicial() {
+        const s = { bancos: {}, txns: [], manual: { invest: [40, 20, 15, 25], smiles: 142300 } };
+        BANCOS.forEach(b => s.bancos[b.nome] = { saldo: 0, gastos: 0, count: 0 });
+        return s;
+    }
+    let state = estadoInicial();
 
-    // Persistência (silenciosa: se o navegador bloquear, simplesmente não salva)
     const Store = {
         save() { try { localStorage.setItem('wf_state', JSON.stringify(state)); } catch (e) {} },
         load() { try { const s = localStorage.getItem('wf_state'); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
@@ -177,8 +276,8 @@
 
     // ====================== UTILIDADES ======================
     const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+    const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 
-    // Converte texto de valor ("-1.234,56", "1234.56", "1.234,56") em número
     function normalizaValor(s) {
         if (s == null) return 0;
         s = String(s).trim();
@@ -186,7 +285,6 @@
         const negativo = /^-/.test(s) || /-$/.test(s) || /\(.*\)/.test(s);
         s = s.replace(/[^\d.,]/g, '');
         if (s.includes(',') && s.includes('.')) {
-            // o separador decimal é o que aparece por último
             if (s.lastIndexOf(',') > s.lastIndexOf('.')) s = s.replace(/\./g, '').replace(',', '.');
             else s = s.replace(/,/g, '');
         } else if (s.includes(',')) {
@@ -197,7 +295,6 @@
         return negativo ? -Math.abs(n) : n;
     }
 
-    // Data OFX (AAAAMMDD...) -> {y, m, d}
     function dataOFX(s) {
         if (!s) return null;
         const d = String(s).replace(/[^\d]/g, '').slice(0, 8);
@@ -211,16 +308,54 @@
         return `${p(dt.d)}/${p(dt.m)}/${dt.y}`;
     }
 
-    // Soma os gastos (valores negativos) do mês mais recente presente nos lançamentos
-    function calculaGastosDoMes(txns) {
-        if (!txns.length) return 0;
-        let chaveMax = 0;
-        txns.forEach(t => { if (t.date) chaveMax = Math.max(chaveMax, t.date.y * 100 + t.date.m); });
-        let soma = 0;
-        txns.forEach(t => {
-            if (t.date && (t.date.y * 100 + t.date.m) === chaveMax && t.amount < 0) soma += t.amount;
-        });
-        return Math.abs(soma);
+    function chaveMes(dt) { return dt ? dt.y * 100 + dt.m : 0; }
+    function rotuloMes(chave) { return `${MESES[(chave % 100) - 1]}/${String(Math.floor(chave / 100)).slice(2)}`; }
+
+    function mesMaisRecente(txns) {
+        let k = 0;
+        txns.forEach(t => { if (t.date) k = Math.max(k, chaveMes(t.date)); });
+        return k;
+    }
+
+    // ====================== CATEGORIZAÇÃO ======================
+    const CAT_CORES = {
+        'Mercado': '#10B981', 'Alimentação': '#F59E0B', 'Transporte': '#3B82F6',
+        'Moradia/Contas': '#8B5CF6', 'Saúde': '#EC4899', 'Lazer/Assinaturas': '#06B6D4',
+        'Compras': '#6366F1', 'Seguros': '#F97316', 'Transferências': '#9CA3AF',
+        'Tarifas/Juros': '#EF4444', 'Outros': '#64748B'
+    };
+
+    const REGRAS = [
+        // Alimentação — inclui abreviações comuns do Itaú (PAD=padaria, SACOL=sacolão, etc.)
+        [/ifood|rappi|aiqfome|uber\s?eats|restaur|lanchon|pizz|burger|mc\s?donal|bobs|subway|starbucks|cafeter|padaria|\bbar\b|delivery|habib|PAD |SACOL|LANCHE|SNACK|ACOUGUE|ACOU|BISTRO|BOTECO|SUSHI|CHURRASCO/i, 'Alimentação'],
+        // Mercado
+        [/mercado|supermerc|atacad|hortifr|açougue|carrefour|pao de acucar|pão de açúcar|assa[ií]|\bextra\b|\bbig\b|\bsams\b|makro|\bdia\b|FRUTA|FEIRA|HORTIFRUT/i, 'Mercado'],
+        // Transporte
+        [/\buber\b|\b99\b|99app|posto|combust|gasolin|ipiranga|shell|petrobras|estacion|metr[oô]|pedagio|pedágio|onibus|ônibus|latam|\bgol\b|\bazul\b|passagem|bilhete|AUTO PAN|RODOA/i, 'Transporte'],
+        // Moradia/Contas — inclui ELETROPAULO, CLARO, débitos automáticos (DA)
+        [/aluguel|condom|energia|enel|cemig|light|copel|cpfl|sabesp|sanea|\bagua\b|\bágua\b|comgas|\bclaro\b|\bvivo\b|\btim\b|\boi\b|\bnet\b|internet|telefon|iptu|conta de|ELETROPAULO|ELETROPAU|\bDA\s+CLARO\b|\bDA\s+VIVO\b|\bDA\s+TIM\b|\bDA\s+OI\b|\bDA\s+ENEL\b|\bDA\s+CEMIG\b|\bDA\s+SABESP\b|\bDA\s+COMGAS\b/i, 'Moradia/Contas'],
+        // Saúde — inclui DROGA abreviado (PAY DROGA)
+        [/farmac|drogaria|drogasil|pacheco|\braia\b|\bdroga\b|hospital|clinic|laborat|m[eé]dic|dentist|unimed|amil|hapvida|sa[uú]de/i, 'Saúde'],
+        // Lazer/Assinaturas
+        [/netflix|spotify|\bprime\b|disney|\bhbo\b|\bmax\b|youtube|globoplay|deezer|cinema|ingresso|steam|playstation|xbox|nintendo|academia|smartfit|gympass|assinatura/i, 'Lazer/Assinaturas'],
+        // Compras
+        [/amazon|mercado livre|mercadolivre|magalu|magazine|americanas|shopee|aliexpress|shein|renner|riachuelo|\bzara\b|c&a|\bloja\b|shopping|MIX F/i, 'Compras'],
+        // Seguros
+        [/seguro|SEGURO CARTAO|seg cart/i, 'Seguros'],
+        // Transferências — PIX, TED, DOC, pagamentos de fatura de cartão (ITAU BLACK, UNICLASS, ITAU VISA), boletos
+        [/\bpix\b|\bted\b|\bdoc\b|transferenc|transfer|envio|dep[oó]sito|PIX TRANSF|INT ITAU|FATURA PAGA|PAG BOLETO|ITAU VISA|UNICLASS|ITAU BLACK|\bPAY\b/i, 'Transferências'],
+        // Tarifas/Juros — apenas cobranças bancárias reais: juros, IOF, tarifas, anuidades, multas
+        [/\btarifa\b|juros|\biof\b|anuidade|multa|encargo|\btaxa\b|LIMITE DA CONTA/i, 'Tarifas/Juros'],
+    ];
+
+    function categoriza(memo) {
+        const m = (memo || '').toLowerCase();
+        for (const [re, cat] of REGRAS) if (re.test(m)) return cat;
+        return 'Outros';
+    }
+
+    function normalizaMemo(m) {
+        return (m || '').toLowerCase().replace(/\d+/g, '').replace(/[^a-zçãáéíóúâêô ]/gi, '').replace(/\s+/g, ' ').trim().slice(0, 24);
     }
 
     // ====================== PARSERS ======================
@@ -239,7 +374,6 @@
             const memo = pegaTag(bloco, 'MEMO') || pegaTag(bloco, 'NAME') || 'Lançamento';
             if (amount !== 0 || date) txns.push({ amount, date, memo });
         }
-        // saldo: prioriza o bloco LEDGERBAL
         let saldo = null;
         const led = texto.match(/<LEDGERBAL>([\s\S]*?)(<\/LEDGERBAL>|<\/STMTRS>)/i);
         const escopo = led ? led[1] : texto;
@@ -274,20 +408,13 @@
         if (!linhas.length) return { txns: [], saldo: null };
         const delim = (texto.split(';').length > texto.split(',').length) ? ';' : ',';
         const linhasCols = linhas.map(l => divideLinhaCSV(l, delim));
-
-        // tenta achar cabeçalho
         const cab = linhasCols[0].map(h => h.toLowerCase());
         let iData = cab.findIndex(h => /data|date/.test(h));
         let iValor = cab.findIndex(h => /valor|value|amount|montante|crédito|débito/.test(h));
         let iDesc = cab.findIndex(h => /descri|hist|memo|lan|detalhe|estabelec/.test(h));
         let iSaldo = cab.findIndex(h => /saldo|balance/.test(h));
         let inicio = 1;
-
-        // sem cabeçalho reconhecível: assume data / descrição / valor pelas posições
-        if (iData === -1 && iValor === -1) {
-            iData = 0; iDesc = 1; iValor = linhasCols[0].length - 1; inicio = 0;
-        }
-
+        if (iData === -1 && iValor === -1) { iData = 0; iDesc = 1; iValor = linhasCols[0].length - 1; inicio = 0; }
         const txns = []; let ultimoSaldo = null;
         for (let i = inicio; i < linhasCols.length; i++) {
             const cols = linhasCols[i];
@@ -300,84 +427,225 @@
         return { txns, saldo: ultimoSaldo };
     }
 
+    // ====================== ANÁLISE ======================
+    function gastosPorCategoria(txns) {
+        const por = {};
+        txns.filter(t => t.amount < 0).forEach(t => {
+            const c = t.cat || categoriza(t.memo);
+            por[c] = (por[c] || 0) + Math.abs(t.amount);
+        });
+        return por;
+    }
+
+    function detectaRecorrentes(txns) {
+        const grupos = {};
+        txns.filter(t => t.amount < 0 && t.date).forEach(t => {
+            const k = normalizaMemo(t.memo);
+            if (!k) return;
+            (grupos[k] = grupos[k] || []).push(t);
+        });
+        const itens = [];
+        for (const k in grupos) {
+            const g = grupos[k];
+            const meses = new Set(g.map(t => chaveMes(t.date)));
+            if (meses.size >= 2) {
+                const media = g.reduce((s, t) => s + Math.abs(t.amount), 0) / g.length;
+                itens.push({ nome: g[0].memo.trim(), valor: media });
+            }
+        }
+        itens.sort((a, b) => b.valor - a.valor);
+        return { itens, total: itens.reduce((s, i) => s + i.valor, 0) };
+    }
+
+    function detectaDuplicados(txns) {
+        const vistos = {};
+        for (const t of txns) {
+            if (t.amount >= 0 || Math.abs(t.amount) < 20) continue;
+            const k = normalizaMemo(t.memo) + '|' + Math.abs(t.amount).toFixed(2);
+            if (vistos[k]) return `Dois lançamentos de ${brl.format(Math.abs(t.amount))} com a mesma descrição ("${t.memo.trim().slice(0, 30)}") no mês. Confira se não houve cobrança em duplicidade.`;
+            vistos[k] = true;
+        }
+        return null;
+    }
+
+    function geraConselhos(escopo, periodoTexto) {
+        const gastos = escopo.filter(t => t.amount < 0);
+        const total = gastos.reduce((s, t) => s + Math.abs(t.amount), 0);
+        if (total <= 0) return [];
+
+        const por = gastosPorCategoria(gastos);
+        const pct = v => Math.round(v / total * 100);
+        const ref = periodoTexto || 'no período';
+        const tips = [];
+
+        const top = Object.entries(por).sort((a, b) => b[1] - a[1])[0];
+        if (top) tips.push({ cor: 'text-blue-400', titulo: '📊 Maior categoria', txt: `${top[0]} concentrou ${brl.format(top[1])} (${pct(top[1])}% dos gastos ${ref}). Vale olhar com atenção esse grupo.` });
+
+        const aliment = por['Alimentação'] || 0;
+        if (aliment / total > 0.15) tips.push({ cor: 'text-orange-400', titulo: '🍔 Delivery e restaurantes', txt: `Você gastou ${brl.format(aliment)} comendo fora (${pct(aliment)}% ${ref}). Cozinhar parte disso pode liberar até ${brl.format(aliment * 0.4)}.` });
+
+        const rec = detectaRecorrentes(state.txns);
+        if (rec.total > 0) {
+            const ex = rec.itens.slice(0, 2).map(i => i.nome.slice(0, 20)).join(', ');
+            tips.push({ cor: 'text-cyan-400', titulo: '🔁 Cobranças recorrentes', txt: `Detectamos ${rec.itens.length} cobrança(s) que se repetem todo mês, somando ~${brl.format(rec.total)} (ex.: ${ex}). Cancele as que você não usa mais.` });
+        }
+
+        const tarifa = por['Tarifas/Juros'] || 0;
+        if (tarifa > 0) tips.push({ cor: 'text-red-400', titulo: '🏦 Tarifas e juros', txt: `Você pagou ${brl.format(tarifa)} em tarifas/juros ${ref}. Contas digitais costumam zerar boa parte disso.` });
+
+        const dup = detectaDuplicados(gastos);
+        if (dup) tips.push({ cor: 'text-yellow-400', titulo: '⚠️ Possível duplicidade', txt: dup });
+
+        return tips.slice(0, 4);
+    }
+
+    // meses disponíveis (mais recente primeiro) e período selecionado
+    function mesesDisponiveis() {
+        const s = new Set();
+        state.txns.forEach(t => { if (t.date) s.add(chaveMes(t.date)); });
+        return [...s].sort((a, b) => b - a);
+    }
+    function atualizaFiltroMes() {
+        const sel = document.getElementById('filtroMes');
+        const atual = sel.value;
+        const meses = mesesDisponiveis();
+        let html = '<option value="todos">Todos os meses</option>';
+        meses.forEach(k => { html += `<option value="${k}">${rotuloMes(k)}</option>`; });
+        sel.innerHTML = html;
+        if (atual && [...sel.options].some(o => o.value === atual)) sel.value = atual;
+        else sel.value = meses.length ? String(meses[0]) : 'todos';
+    }
+
     // ====================== GRÁFICOS ======================
-    let bancosChart, investChart;
+    let bancosChart, categoriaChart, mesChart, investChart;
+    let chavesEvolucao = [];
 
     function initCharts() {
         bancosChart = new Chart(document.getElementById('bancosChart'), {
             type: 'bar',
-            data: {
-                labels: BANCOS.map(b => b.nome),
-                datasets: [{
-                    label: 'Saldo (R$)',
-                    data: BANCOS.map(b => state.bancos[b.nome].saldo),
-                    backgroundColor: BANCOS.map(b => b.cor),
-                    borderWidth: 0, borderRadius: 6
-                }]
-            },
+            data: { labels: BANCOS.map(b => b.nome), datasets: [{ data: BANCOS.map(b => state.bancos[b.nome].saldo), backgroundColor: BANCOS.map(b => b.cor), borderWidth: 0, borderRadius: 6 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#374151' }, ticks: { color: '#9CA3AF' } }, x: { grid: { display: false }, ticks: { color: '#9CA3AF' } } } }
+        });
+
+        categoriaChart = new Chart(document.getElementById('categoriaChart'), {
+            type: 'doughnut',
+            data: { labels: [], datasets: [{ data: [], backgroundColor: [], borderWidth: 0 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#9CA3AF', font: { size: 11 } } } } }
+        });
+
+        mesChart = new Chart(document.getElementById('mesChart'), {
+            type: 'bar',
+            data: { labels: [], datasets: [
+                { label: 'Entradas', data: [], backgroundColor: '#10B981', borderWidth: 0, borderRadius: 4 },
+                { label: 'Saídas',   data: [], backgroundColor: '#EF4444', borderWidth: 0, borderRadius: 4 }
+            ]},
             options: {
                 responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { grid: { color: '#374151' }, ticks: { color: '#9CA3AF' } },
-                    x: { grid: { display: false }, ticks: { color: '#9CA3AF' } }
-                }
+                onClick: (e, els) => { if (els.length) { const c = chavesEvolucao[els[0].index]; const sel = document.getElementById('filtroMes'); sel.value = String(c); refresh(); } },
+                plugins: { legend: { position: 'top', align: 'end', labels: { color: '#9CA3AF', font: { size: 11 }, boxWidth: 12, boxHeight: 12 } } },
+                scales: { y: { grid: { color: '#374151' }, ticks: { color: '#9CA3AF' } }, x: { grid: { display: false }, ticks: { color: '#9CA3AF' } } }
             }
         });
 
         investChart = new Chart(document.getElementById('investChart'), {
             type: 'doughnut',
-            data: {
-                labels: ['Ações (Ibovespa/Dólar)', 'Fundos Imobiliários', 'Criptoativos', 'Renda Fixa/Liquidez'],
-                datasets: [{
-                    data: [40, 20, 15, 25],
-                    backgroundColor: ['#10B981', '#3B82F6', '#8B5CF6', '#6B7280'],
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { position: 'right', labels: { color: '#9CA3AF', font: { size: 11 } } } }
-            }
+            data: { labels: ['Ações', 'Fundos Imobiliários', 'Criptoativos', 'Renda Fixa/Liquidez'], datasets: [{ data: state.manual.invest, backgroundColor: ['#10B981', '#3B82F6', '#8B5CF6', '#6B7280'], borderWidth: 0 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#9CA3AF', font: { size: 11 } } } } }
         });
     }
 
     // ====================== RENDER ======================
     function refresh() {
+        atualizaFiltroMes();
+        const selVal = document.getElementById('filtroMes').value;
+        const kSel = (selVal === 'todos') ? null : parseInt(selVal, 10);
+        const escopo = kSel ? state.txns.filter(t => t.date && chaveMes(t.date) === kSel) : state.txns;
+        const periodoTexto = kSel ? `em ${rotuloMes(kSel)}` : 'no total';
+
+        // cards
         const totalSaldo = BANCOS.reduce((s, b) => s + state.bancos[b.nome].saldo, 0);
-        const totalGastos = BANCOS.reduce((s, b) => s + state.bancos[b.nome].gastos, 0);
-
+        const gastosEscopo = escopo.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
         document.getElementById('cardSaldos').textContent = brl.format(totalSaldo);
-        document.getElementById('cardGastos').textContent = brl.format(totalGastos);
-        document.getElementById('cardLancamentos').textContent = state.txns.length;
+        document.getElementById('cardGastos').textContent = brl.format(gastosEscopo);
+        document.getElementById('lblGastos').textContent = kSel ? 'Gastos no Mês' : 'Gastos (Total)';
+        document.getElementById('cardLancamentos').textContent = escopo.length;
+        document.getElementById('cardSmiles').innerHTML = Number(state.manual.smiles || 0).toLocaleString('pt-BR') + ' <span class="text-xs font-normal">milhas</span>';
 
-        if (bancosChart) {
-            bancosChart.data.datasets[0].data = BANCOS.map(b => state.bancos[b.nome].saldo);
-            bancosChart.update();
+        // saldos por banco (sempre o saldo atual, independe do período)
+        bancosChart.data.datasets[0].data = BANCOS.map(b => state.bancos[b.nome].saldo);
+        bancosChart.update();
+
+        // categorias do período — legenda com % e valor
+        const por = gastosPorCategoria(escopo);
+        const totalCat = Object.values(por).reduce((s, v) => s + v, 0);
+        const ordenadas = Object.entries(por).sort((a, b) => b[1] - a[1]);
+        categoriaChart.data.labels = ordenadas.map(e => {
+            const pct = totalCat > 0 ? Math.round(e[1] / totalCat * 100) : 0;
+            return `${e[0]}  ${pct}%  ${brl.format(e[1])}`;
+        });
+        categoriaChart.data.datasets[0].data = ordenadas.map(e => e[1]);
+        categoriaChart.data.datasets[0].backgroundColor = ordenadas.map(e => CAT_CORES[e[0]] || '#64748B');
+        categoriaChart.update();
+
+        // evolução mensal agrupada: entradas (verde) e saídas (vermelho)
+        const porMesE = {}, porMesS = {};
+        state.txns.filter(t => t.date).forEach(t => {
+            const c = chaveMes(t.date);
+            if (t.amount > 0) porMesE[c] = (porMesE[c] || 0) + t.amount;
+            else              porMesS[c] = (porMesS[c] || 0) + Math.abs(t.amount);
+        });
+        const todasChaves = new Set([...Object.keys(porMesE), ...Object.keys(porMesS)].map(Number));
+        chavesEvolucao = [...todasChaves].sort((a, b) => a - b).slice(-12);
+        mesChart.data.labels = chavesEvolucao.map(rotuloMes);
+        mesChart.data.datasets[0].data = chavesEvolucao.map(c => porMesE[c] || 0);
+        mesChart.data.datasets[0].backgroundColor = chavesEvolucao.map(c => (kSel && c !== kSel) ? '#065F46' : '#10B981');
+        mesChart.data.datasets[1].data = chavesEvolucao.map(c => porMesS[c] || 0);
+        mesChart.data.datasets[1].backgroundColor = chavesEvolucao.map(c => (kSel && c !== kSel) ? '#7F1D1D' : '#EF4444');
+        mesChart.update();
+
+        // investimentos
+        investChart.data.datasets[0].data = state.manual.invest;
+        investChart.update();
+
+        // conselhos
+        const tips = geraConselhos(escopo, periodoTexto);
+        const cont = document.getElementById('conselhos');
+        if (!tips.length) {
+            const msg = state.txns.length ? 'Sem gastos para analisar neste período.' : 'Importe um extrato para receber a análise dos seus gastos.';
+            cont.innerHTML = `<div class="p-3 bg-gray-900/50 rounded-lg border border-gray-700 text-gray-500">${msg}</div>`;
+        } else {
+            cont.innerHTML = tips.map(t =>
+                `<div class="p-3 bg-gray-900/50 rounded-lg border border-gray-700">
+                    <span class="font-bold ${t.cor} block mb-1">${t.titulo}</span>
+                    <span class="text-gray-300">${t.txt}</span>
+                </div>`).join('');
         }
 
-        // tabela: mais recentes primeiro
-        const ordenados = [...state.txns].sort((a, b) => {
+        // tabela (período selecionado)
+        const ordenados = [...escopo].sort((a, b) => {
             const ka = a.date ? a.date.y * 10000 + a.date.m * 100 + a.date.d : 0;
             const kb = b.date ? b.date.y * 10000 + b.date.m * 100 + b.date.d : 0;
             return kb - ka;
-        }).slice(0, 15);
-
+        }).slice(0, 20);
         const tbody = document.getElementById('tabelaLancamentos');
         if (!ordenados.length) {
-            tbody.innerHTML = '<tr><td colspan="4" class="py-6 text-center text-gray-600">Nenhum lançamento ainda. Importe um extrato acima.</td></tr>';
-            return;
+            tbody.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-gray-600">Nenhum lançamento neste período.</td></tr>';
+        } else {
+            tbody.innerHTML = ordenados.map(t => {
+                const cor = t.amount < 0 ? 'text-red-400' : 'text-emerald-400';
+                const cat = t.cat || categoriza(t.memo);
+                const desc = (t.memo || '').replace(/</g, '&lt;').slice(0, 50);
+                return `<tr class="border-b border-gray-800/60">
+                    <td class="py-2.5 pr-4 text-gray-400 whitespace-nowrap">${fmtData(t.date)}</td>
+                    <td class="py-2.5 pr-4 text-gray-300 whitespace-nowrap">${t.banco}</td>
+                    <td class="py-2.5 pr-4 text-gray-300">${desc}</td>
+                    <td class="py-2.5 pr-4"><span class="text-xs px-2 py-0.5 rounded-full" style="background:${(CAT_CORES[cat]||'#64748B')}22;color:${CAT_CORES[cat]||'#94A3B8'}">${cat}</span></td>
+                    <td class="py-2.5 text-right font-medium ${cor} whitespace-nowrap"
+                        data-valor="${brl.format(t.amount)}">${oculto ? '••••••' : brl.format(t.amount)}</td>
+                </tr>`;
+            }).join('');
         }
-        tbody.innerHTML = ordenados.map(t => {
-            const cor = t.amount < 0 ? 'text-red-400' : 'text-emerald-400';
-            const desc = (t.memo || '').replace(/</g, '&lt;').slice(0, 60);
-            return `<tr class="border-b border-gray-800/60">
-                <td class="py-2.5 pr-4 text-gray-400 whitespace-nowrap">${fmtData(t.date)}</td>
-                <td class="py-2.5 pr-4 text-gray-300 whitespace-nowrap">${t.banco}</td>
-                <td class="py-2.5 pr-4 text-gray-300">${desc}</td>
-                <td class="py-2.5 text-right font-medium ${cor} whitespace-nowrap">${brl.format(t.amount)}</td>
-            </tr>`;
-        }).join('');
+        if (oculto) aplicaOculto();
     }
 
     // ====================== IMPORTAÇÃO ======================
@@ -391,7 +659,6 @@
         const banco = document.getElementById('impBanco').value;
         const inputArq = document.getElementById('impArquivo');
         const saldoManual = document.getElementById('impSaldo').value;
-
         if (!inputArq.files.length) { status('Selecione um arquivo .ofx ou .csv primeiro.', true); return; }
 
         const arquivo = inputArq.files[0];
@@ -401,48 +668,165 @@
                 const texto = e.target.result;
                 const ehOFX = /\.ofx$/i.test(arquivo.name) || /<OFX>|<STMTTRN>/i.test(texto);
                 const { txns, saldo } = ehOFX ? parseOFX(texto) : parseCSV(texto);
+                if (!txns.length && saldo == null) { status('Não encontrei lançamentos. Confira se é um extrato OFX/CSV válido.', true); return; }
 
-                if (!txns.length && saldo == null) {
-                    status('Não encontrei lançamentos nesse arquivo. Confira se é um extrato OFX/CSV válido.', true);
-                    return;
-                }
-
-                txns.forEach(t => t.banco = banco);
-
-                // remove dados antigos desse banco e adiciona os novos
+                txns.forEach(t => { t.banco = banco; t.cat = categoriza(t.memo); });
                 state.txns = state.txns.filter(t => t.banco !== banco).concat(txns);
 
                 let saldoFinal;
                 if (saldoManual !== '') saldoFinal = parseFloat(saldoManual);
                 else if (saldo != null) saldoFinal = saldo;
-                else saldoFinal = txns.reduce((s, t) => s + t.amount, 0); // estimativa pela soma
+                else saldoFinal = txns.reduce((s, t) => s + t.amount, 0);
 
-                state.bancos[banco] = {
-                    saldo: saldoFinal,
-                    gastos: calculaGastosDoMes(txns),
-                    count: txns.length
-                };
+                const k = mesMaisRecente(txns);
+                const gastosMes = txns.filter(t => t.date && chaveMes(t.date) === k && t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
+                state.bancos[banco] = { saldo: saldoFinal, gastos: gastosMes, count: txns.length };
 
-                Store.save();
-                refresh();
-                inputArq.value = '';
-                document.getElementById('impSaldo').value = '';
-                status(`${banco}: ${txns.length} lançamentos importados • saldo ${brl.format(saldoFinal)} • gastos no mês ${brl.format(state.bancos[banco].gastos)}.`);
-            } catch (err) {
-                status('Erro ao ler o arquivo: ' + err.message, true);
-            }
+                Store.save(); refresh();
+                inputArq.value = ''; document.getElementById('impSaldo').value = '';
+                status(`${banco}: ${txns.length} lançamentos • saldo ${brl.format(saldoFinal)} • gastos no mês ${brl.format(gastosMes)}.`);
+            } catch (err) { status('Erro ao ler o arquivo: ' + err.message, true); }
         };
         reader.onerror = () => status('Não consegui ler o arquivo.', true);
-        reader.readAsText(arquivo, 'ISO-8859-1'); // extratos brasileiros costumam vir em Latin-1
+        reader.readAsText(arquivo, 'ISO-8859-1');
+    }
+
+    // ====================== AJUSTES MANUAIS ======================
+    function carregaManual() {
+        const inv = state.manual.invest;
+        document.getElementById('mAcoes').value = inv[0];
+        document.getElementById('mFii').value = inv[1];
+        document.getElementById('mCripto').value = inv[2];
+        document.getElementById('mRf').value = inv[3];
+        document.getElementById('mSmiles').value = state.manual.smiles;
+    }
+    function salvaManual() {
+        state.manual.invest = [
+            +document.getElementById('mAcoes').value || 0,
+            +document.getElementById('mFii').value || 0,
+            +document.getElementById('mCripto').value || 0,
+            +document.getElementById('mRf').value || 0
+        ];
+        state.manual.smiles = +document.getElementById('mSmiles').value || 0;
+        Store.save(); refresh();
+        status('Ajustes manuais salvos.');
+    }
+
+    // ====================== BACKUP ======================
+    function exportar() {
+        const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'wealthflow-backup.json';
+        document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+    }
+    function importarBackup(e) {
+        const f = e.target.files[0];
+        if (!f) return;
+        const r = new FileReader();
+        r.onload = ev => {
+            try {
+                const dados = JSON.parse(ev.target.result);
+                if (!dados.bancos || !dados.txns) throw new Error('arquivo inválido');
+                state = dados;
+                if (!state.manual) state.manual = estadoInicial().manual;
+                BANCOS.forEach(b => { if (!state.bancos[b.nome]) state.bancos[b.nome] = { saldo: 0, gastos: 0, count: 0 }; });
+                Store.save(); carregaManual(); refresh();
+                status('Backup importado com sucesso.');
+            } catch (err) { status('Não consegui ler o backup: ' + err.message, true); }
+        };
+        r.readAsText(f);
+        e.target.value = '';
     }
 
     function limpar() {
         if (!confirm('Apagar todos os dados importados?')) return;
-        state = { bancos: {}, txns: [] };
-        BANCOS.forEach(b => state.bancos[b.nome] = { saldo: 0, gastos: 0, count: 0 });
-        Store.save();
-        refresh();
+        state = estadoInicial();
+        Store.save(); carregaManual(); refresh();
         status('Dados apagados. Importe um extrato para começar de novo.');
+    }
+
+    // ====================== SENHA ======================
+    const HASH_KEY = 'wf_pwd_hash';
+    const OCULTO_KEY = 'wf_oculto';
+    let oculto = false;
+    let inactivityTimer = null;
+    const INACTIVITY_MS = 5 * 60 * 1000; // 5 minutos
+
+    async function sha256(str) {
+        const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    function lockScreen() {
+        const el = document.getElementById('lockScreen');
+        el.style.cssText = 'display:flex!important';
+        document.getElementById('lockInput').value = '';
+        document.getElementById('lockInput').focus();
+        const temSenha = !!localStorage.getItem(HASH_KEY);
+        document.getElementById('lockMsg').textContent = temSenha
+            ? 'Digite sua senha para acessar' : 'Crie uma senha de acesso';
+        document.getElementById('lockSetup').textContent = temSenha
+            ? '' : 'Primeira vez: defina a senha que desejar.';
+    }
+
+    function unlockScreen() {
+        document.getElementById('lockScreen').style.cssText = 'display:none!important';
+        resetInactivity();
+    }
+
+    async function tentarSenha() {
+        const val = document.getElementById('lockInput').value;
+        if (!val) return;
+        const hash = await sha256(val);
+        const salvo = localStorage.getItem(HASH_KEY);
+        if (!salvo) {
+            // primeira vez: define a senha
+            localStorage.setItem(HASH_KEY, hash);
+            unlockScreen();
+            status('Senha definida com sucesso! Não esqueça dela.');
+        } else if (hash === salvo) {
+            unlockScreen();
+        } else {
+            document.getElementById('lockMsg').textContent = 'Senha incorreta. Tente novamente.';
+            document.getElementById('lockMsg').className = 'text-sm text-red-400 mt-1';
+            document.getElementById('lockInput').value = '';
+        }
+    }
+
+    function resetInactivity() {
+        clearTimeout(inactivityTimer);
+        inactivityTimer = setTimeout(() => { lockScreen(); }, INACTIVITY_MS);
+    }
+
+    // ====================== OCULTAR VALORES ======================
+    const SENSÍVEIS = ['cardSaldos','cardGastos','cardLancamentos','cardSmiles'];
+
+    function aplicaOculto() {
+        document.getElementById('olhoIcon').textContent = oculto ? '🙈' : '👁️';
+        document.getElementById('olhoTxt').textContent  = oculto ? 'Mostrar' : 'Ocultar';
+        // cobre números nos cards
+        SENSÍVEIS.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            if (oculto) {
+                if (!el.dataset.real) el.dataset.real = el.innerHTML;
+                el.innerHTML = '<span class="tracking-widest text-gray-600">••••••</span>';
+            } else if (el.dataset.real) {
+                el.innerHTML = el.dataset.real;
+                delete el.dataset.real;
+            }
+        });
+        // cobre valores na tabela
+        document.querySelectorAll('[data-valor]').forEach(td => {
+            td.textContent = oculto ? '••••••' : td.dataset.valor;
+        });
+    }
+
+    function toggleOcultar() {
+        oculto = !oculto;
+        aplicaOculto();
     }
 
     // ====================== INICIALIZAÇÃO ======================
@@ -450,20 +834,43 @@
         const salvo = Store.load();
         if (salvo && salvo.bancos && salvo.txns) {
             state = salvo;
+            if (!state.manual) state.manual = estadoInicial().manual;
             BANCOS.forEach(b => { if (!state.bancos[b.nome]) state.bancos[b.nome] = { saldo: 0, gastos: 0, count: 0 }; });
+            state.txns.forEach(t => { if (!t.cat) t.cat = categoriza(t.memo); });
         }
         initCharts();
+        carregaManual();
         refresh();
         document.getElementById('btnImportar').addEventListener('click', importar);
+        document.getElementById('btnSalvarManual').addEventListener('click', salvaManual);
+        document.getElementById('btnExportar').addEventListener('click', exportar);
+        document.getElementById('inputBackup').addEventListener('change', importarBackup);
         document.getElementById('btnLimpar').addEventListener('click', limpar);
+        document.getElementById('filtroMes').addEventListener('change', refresh);
+
+        // ocultar / mostrar
+        document.getElementById('btnOcultar').addEventListener('click', toggleOcultar);
+
+        // bloquear manualmente
+        document.getElementById('btnBloquear').addEventListener('click', lockScreen);
+
+        // tela de senha: enter + botão
+        document.getElementById('lockBtn').addEventListener('click', tentarSenha);
+        document.getElementById('lockInput').addEventListener('keydown', e => { if (e.key === 'Enter') tentarSenha(); });
+
+        // inatividade: qualquer interação reinicia o timer
+        ['click','keydown','touchstart','scroll'].forEach(ev =>
+            document.addEventListener(ev, resetInactivity, { passive: true })
+        );
+
+        // abre a tela de senha sempre que o app carrega
+        lockScreen();
     });
 
-    // ====================== PWA: registra o service worker ======================
+    // ====================== PWA ======================
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js').catch(err => {
-                console.warn('Service worker não registrado:', err);
-            });
+            navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW não registrado:', err));
         });
     }
     </script>
